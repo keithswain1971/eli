@@ -175,7 +175,7 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
                     page: pageContext?.url || 'unknown',
                     is_course_query: isCourseQuery,
                     sources_found: courseSources.length,
-                    generated_tokens: result.usage.completionTokens,
+                    generated_tokens: (result.usage as any).completionTokens || 0,
                     has_carousel_generated: !!carouselInjection
                 };
 
