@@ -14,7 +14,11 @@ export default function EmbedPage({ searchParams }: { searchParams: { context?: 
                 so it feels like a native part of the host page.
                 The host page controls the iframe visibility.
             */}
-            <EliWidget surface="website" defaultOpen={true} />
+            <EliWidget
+                surface="website"
+                defaultOpen={false}
+                context={searchParams.context as string}
+            />
         </div>
     );
 }

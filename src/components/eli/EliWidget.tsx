@@ -315,8 +315,7 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
                         <MessageCircle size={28} />
                     </button>
 
-                    {/* Ripple Effect Ring */}
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-20 animate-ping top-0 right-0 -z-10 disabled:hidden"></span>
+                    {/* Ripple Effect Ring - Removed (too fast) */}
                 </div>
             )}
 
