@@ -184,7 +184,7 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
                     user_message: lastUserMessage,
                     assistant_response: result.text,
                     metadata: metadata
-                });
+                } as any);
             } catch (error) {
                 console.error('❌ Failed to log chat:', error);
                 // Don't break the response if logging fails
