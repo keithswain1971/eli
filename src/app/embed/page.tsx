@@ -2,7 +2,7 @@
 
 import EliWidget from '@/components/eli/EliWidget';
 
-export default function EmbedPage() {
+export default function EmbedPage({ searchParams }: { searchParams: { context?: string } }) {
     return (
         <div className="w-full h-screen bg-transparent">
             <style dangerouslySetInnerHTML={{

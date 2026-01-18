@@ -14,7 +14,16 @@ type Surface = 'website' | 'dashboard';
 interface EliWidgetProps {
     surface?: Surface;
     defaultOpen?: boolean;
+    context?: string; // e.g. 'employers', 'learners', 'programs'
 }
+
+// Proactive messages based on User Context
+const tooltips: Record<string, string> = {
+    'employers': "Looking to hire an apprentice? I can help!",
+    'learners': "Start your career with an apprenticeship. Ask me how!",
+    'programs': "Not sure which program is right for you?",
+    'contact': "Have a specific question? Ask me directly."
+};
 
 interface Message {
     id: string;
@@ -22,7 +31,7 @@ interface Message {
     content: string;
 }
 
-export default function EliWidget({ surface = 'website', defaultOpen = false }: EliWidgetProps) {
+export default function EliWidget({ surface = 'website', defaultOpen = false, context }: EliWidgetProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
@@ -287,12 +296,28 @@ export default function EliWidget({ surface = 'website', defaultOpen = false }: 
 
             {/* Launcher */}
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all transform hover:scale-105"
-                >
-                    <MessageCircle size={28} />
-                </button>
+                <div className="relative group">
+                    {/* Contextual Tooltip */}
+                    {context && tooltips[context] && (
+                        <div className="absolute bottom-full right-0 mb-3 w-48 bg-white p-3 rounded-xl shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="text-xs font-medium text-slate-800 relative z-10">
+                                {tooltips[context]}
+                            </div>
+                            {/* Tiny pointer triangle */}
+                            <div className="absolute -bottom-1 right-6 w-3 h-3 bg-white transform rotate-45 border-b border-r border-slate-100"></div>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all transform hover:scale-105 animate-pulse-subtle"
+                    >
+                        <MessageCircle size={28} />
+                    </button>
+
+                    {/* Ripple Effect Ring */}
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-20 animate-ping top-0 right-0 -z-10 disabled:hidden"></span>
+                </div>
             )}
 
         </div>
