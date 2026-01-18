@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 
 import { rateLimit, getIP } from '@/lib/rate-limit';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
