@@ -1,0 +1,14 @@
+{
+  "supabase": {
+    "status": "ok",
+    "error": null
+  },
+  "openai": {
+    "status": "ok",
+    "error": null
+  },
+  "strapi": {
+    "status": "ok",
+    "error": "Status 200"
+  }
+}

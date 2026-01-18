@@ -1,0 +1,9 @@
+Testing Strapi connection...
+STRAPI_API_URL: https://cms.solveway.co.uk
+STRAPI_API_TOKEN: Set
+
+1. Fetching routes...
+Routes error: TypeError: fetch failed
+
+2. Fetching blog posts...
+Blog posts error: TypeError: fetch failed
