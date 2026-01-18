@@ -195,7 +195,7 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
     return (
         <div className={cn(
             "fixed flex flex-col items-end space-y-4 font-sans antialiased text-slate-800 z-50",
-            defaultOpen ? "bottom-0 right-0 p-0" : "bottom-6 right-6"
+            surface === 'website' ? "bottom-0 right-0 p-0" : "bottom-6 right-6"
         )}>
 
             {/* Chat Window */}
