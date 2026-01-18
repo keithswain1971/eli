@@ -9,7 +9,7 @@ export async function POST(req: Request) {
             .from('eli_leads')
             .insert([
                 { name, email, phone, intent, source_url, chat_session_id }
-            ])
+            ] as any)
             .select();
 
         if (error) throw error;
