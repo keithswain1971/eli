@@ -1,24 +1,32 @@
 'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import EliWidget from '@/components/eli/EliWidget';
 
-export default function EmbedPage({ searchParams }: { searchParams: { context?: string } }) {
+function EmbedContent() {
+    const searchParams = useSearchParams();
+    const context = searchParams.get('context') || undefined;
+
     return (
         <div className="w-full h-screen bg-transparent">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 html, body { background: transparent !important; }
             `}} />
-            {/* 
-                For the embedded version, we default to open 
-                so it feels like a native part of the host page.
-                The host page controls the iframe visibility.
-            */}
             <EliWidget
                 surface="website"
                 defaultOpen={false}
-                context={searchParams.context as string}
+                context={context}
             />
         </div>
+    );
+}
+
+export default function EmbedPage() {
+    return (
+        <Suspense fallback={<div className="bg-transparent" />}>
+            <EmbedContent />
+        </Suspense>
     );
 }
