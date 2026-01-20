@@ -200,7 +200,7 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="w-[380px] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+                <div className="fixed inset-0 z-50 flex flex-col w-full h-[100dvh] bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 sm:static sm:w-[380px] sm:h-[600px] sm:rounded-2xl sm:border sm:border-slate-100">
 
                     {/* Header */}
                     <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
