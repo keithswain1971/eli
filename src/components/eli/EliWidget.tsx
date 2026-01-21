@@ -192,6 +192,27 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
         }
     }, [messages, showLeadForm, showHandover]);
 
+    // Notify parent window of size changes
+    useEffect(() => {
+        if (surface === 'website') {
+            try {
+                // Send state to parent window
+                window.parent.postMessage({
+                    type: 'ELI_RESIZE',
+                    payload: {
+                        isOpen,
+                        // Suggested dimensions for desktop (handled by parent script usually, but good to send)
+                        width: isOpen ? '400px' : '80px',
+                        height: isOpen ? '640px' : '80px'
+                    }
+                }, '*');
+            } catch (e) {
+                // Ignore errors if standalone
+                console.debug('Failed to post message to parent', e);
+            }
+        }
+    }, [isOpen, surface]);
+
     return (
         <div className={cn(
             "fixed flex flex-col items-end space-y-4 font-sans antialiased text-slate-800 z-50",
