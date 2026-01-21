@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '@/components/eli/ChatMessage';
 
+import { TypingIndicator } from '@/components/eli/TypingIndicator';
 import { LeadForm } from '@/components/eli/LeadForm';
 import { AdvisorHandover } from '@/components/eli/AdvisorHandover';
 
@@ -68,9 +69,11 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
         }
     };
 
+    const [isTyping, setIsTyping] = useState(false);
+
     const handleSubmit = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isLoading || isTyping) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -81,10 +84,17 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
         setMessages([...messages, userMessage]);
         setInput('');
         setIsLoading(true);
+        setIsTyping(true); // Start typing animation
 
         // Hide overlays if they chat again
         setShowLeadForm(false);
         setShowHandover(false);
+
+        // Artificial "Thinking" Delay for Sales Psychology (make it feel human)
+        // 1.5 seconds delay before we even start the request/stream processing visibly
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        setIsTyping(false); // Stop typing, start streaming
 
         try {
             const response = await fetch('/api/eli/chat', {
@@ -259,14 +269,9 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
                             <ChatMessage key={m.id} role={m.role} content={m.content} />
                         ))}
 
-                        {/* Loading State */}
-                        {isLoading && (
-                            <div className="flex justify-start w-full">
-                                <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-none p-3 shadow-sm flex items-center space-x-2">
-                                    <Loader2 size={14} className="animate-spin text-slate-400" />
-                                    <span className="text-xs text-slate-400">Thinking...</span>
-                                </div>
-                            </div>
+                        {/* Typing Animation (Sales Psychology: Shows "supportive" thinking) */}
+                        {isTyping && (
+                            <TypingIndicator />
                         )}
 
                         {/* Human Handoff Overlay */}
