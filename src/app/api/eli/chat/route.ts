@@ -260,7 +260,6 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
         system: systemPrompt,
         messages: messages,
         tools: tools as any,
-        maxSteps: 5,
         onFinish: async (result) => {
             // Log interaction to Supabase (Analytics)
             try {
