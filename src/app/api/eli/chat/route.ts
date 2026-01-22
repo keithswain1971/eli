@@ -261,7 +261,7 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
         messages: messages,
         tools: tools as any,
         maxSteps: 5,
-        onFinish: async (result) => {
+        onFinish: async (result: any) => {
             // Log interaction to Supabase (Analytics)
             try {
                 // Get user message from context or last message
