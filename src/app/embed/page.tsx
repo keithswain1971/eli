@@ -7,6 +7,13 @@ import EliWidget from '@/components/eli/EliWidget';
 function EmbedContent() {
     const searchParams = useSearchParams();
     const context = searchParams.get('context') || undefined;
+    // Support both 'token' and 'access_token' params
+    const token = searchParams.get('token') || searchParams.get('access_token') || undefined;
+    const surfaceParam = searchParams.get('surface');
+    // Validate surface
+    const surface: 'website' | 'dashboard' = (surfaceParam === 'dashboard' || surfaceParam === 'website')
+        ? surfaceParam
+        : 'website';
 
     return (
         <div className="w-full h-screen bg-transparent">
@@ -15,9 +22,10 @@ function EmbedContent() {
                 html, body { background: transparent !important; }
             `}} />
             <EliWidget
-                surface="website"
+                surface={surface}
                 defaultOpen={false}
                 context={context}
+                accessToken={token}
             />
         </div>
     );
