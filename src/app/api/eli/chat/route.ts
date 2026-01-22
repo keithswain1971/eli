@@ -1,8 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, tool } from 'ai';
 import { supabaseAdmin } from '@/lib/supabase';
 import { findRelevantChunks } from '@/lib/vector-store';
 import OpenAI from 'openai';
+import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
+import { dashboardToolDefinitions, getAbsentLearners, getLearnerDetails } from '@/lib/tools/dashboard-tools';
 
 import { rateLimit, getIP } from '@/lib/rate-limit';
 
@@ -30,6 +34,43 @@ export async function POST(req: Request) {
 
     // 1. Get or create Session ID (simplified for now - could use headers/cookies)
     let currentSessionId = null;
+
+    // --- SECURITY & CONTEXT BOUNDARY ---
+    const authHeader = req.headers.get('Authorization');
+    const accessToken = authHeader?.replace('Bearer ', '');
+
+    let supabaseClient = supabaseAdmin; // Default to admin for PUBLIC website (read-only vectors)
+    let userProfile = null; // Store user details if authenticated
+
+    // STRICT BOUNDARY: Dashboard Access Control
+    if (surface === 'dashboard') {
+        if (!accessToken) {
+            console.error('⛔ [Security] Dashboard request rejected: No Access Token');
+            return new Response('Unauthorized: Dashboard access requires authentication.', { status: 401 });
+        }
+
+        // Create USER-SCOPED Client (Inherits RLS)
+        // This means Eli can ONLY see rows this user is allowed to see.
+        /* 
+           NOTE: Using createClient with access_token is the standard way to act *on behalf* of a user.
+           However, since we are currently using supabaseAdmin everywhere, we'll simulate the user check 
+           by verifying the token first using getUser().
+        */
+        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+
+        if (authError || !user) {
+            console.error('⛔ [Security] Invalid Access Token:', authError);
+            return new Response('Unauthorized: Invalid Token.', { status: 401 });
+        }
+
+        userProfile = user;
+        console.log(`🛡️ [Security] Authenticated Staff Request: ${user.email} (${user.id})`);
+
+        // FUTURE: In a real "Tool" scenario, we would pass this `accessToken` to the tool 
+        // to make queries on the user's behalf.
+    }
+    // ------------------------------------
+
 
     // 2. Generate Embedding for RAG
     // We use the raw OpenAI client for embeddings
@@ -69,7 +110,8 @@ export async function POST(req: Request) {
     console.log('🎠 [Carousel] courseSources.length:', courseSources.length);
 
     let carouselInjection = '';
-    if (isCourseQuery && courseSources.length >= 2) {
+    // Only inject Sales UI on the PUBLIC Website
+    if (surface === 'website' && isCourseQuery && courseSources.length >= 2) {
         // Auto-generate carousel token from course sources
         const items = courseSources.slice(0, 3).map(course => ({
             title: course.title.replace(/\[Source:\s*/, '').replace(/\s*\(strapi_course\)\]/, '').trim(),
@@ -80,12 +122,36 @@ export async function POST(req: Request) {
         carouselInjection = `\n\n[UI_COMPONENT: ${JSON.stringify({ type: 'carousel', data: { items } })}]`;
         console.log('🎠 [Carousel] ✅ GENERATED TOKEN, length:', carouselInjection.length);
     } else {
-        console.log('🎠 [Carousel] ❌ NOT generating. isCourseQuery:', isCourseQuery, ', sources:', courseSources.length);
+        console.log('🎠 [Carousel] ❌ NOT generating. Surface:', surface);
     }
 
 
-    // 4. System Prompt
-    const systemPrompt = `You are Eli, Solveway's Lead AI Apprenticeship Consultant.
+    // 4. System Prompt Selection based on Surface
+    let systemPrompt = '';
+
+    if (surface === 'dashboard') {
+        // --- STAFF ASSISTANT PERSONA ---
+        systemPrompt = `You are Eli, the Solveway Staff Assistant.
+        
+**YOUR USER:**
+You are speaking to an authenticated Staff Member (${userProfile?.email}).
+They are busy and need quick, accurate facts.
+        
+**CORE DIRECTIVE:**
+1.  **Be Internal & Direct**: Do not "sell". Do not ask "qualifying questions".
+2.  **Data First**: You have tools to query the LIVE database. USE THEM.
+    - If asked "Who is absent?", call \`get_absent_learners\`.
+    - If asked about a student, call \`get_learner_details\`.
+    - Always provide a summary of the data returned by the tool.
+3.  **Tone**: Professional, concise, helpful colleague.
+
+**CONTEXT:**
+${contextString}
+`;
+
+    } else {
+        // --- PUBLIC SALESPERSON PERSONA ---
+        systemPrompt = `You are Eli, Solveway's Lead AI Apprenticeship Consultant.
 
 **CORE DIRECTIVE:**
 You are a strategic salesperson, NOT a search engine. 
@@ -136,6 +202,7 @@ ${contextString}
 Current User Surface: ${surface || 'website'}
 Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown'})
     `;
+    }
 
     // Debug: Check if carousel was injected into prompt
     if (carouselInjection) {
@@ -143,6 +210,46 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
         console.log('🎠 [Carousel] Prompt includes instruction:', systemPrompt.includes('CRITICAL UI INSTRUCTION'));
     }
 
+    // Define Tools Object for streamText (if dashboard)
+    const tools = surface === 'dashboard' ? {
+        get_absent_learners: tool({
+            description: dashboardToolDefinitions.get_absent_learners.description,
+            parameters: z.object({
+                date_string: z.string().describe('Date to check YYYY-MM-DD (or empty for today)')
+            }),
+            execute: async ({ date_string }: { date_string?: string }) => {
+                console.log('🛠️ [Tool] Executing get_absent_learners...');
+                // Use the USER-SCOPED client (userProfile must be valid here)
+                const userClient = createClient<Database>(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                    {
+                        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+                        auth: { persistSession: false }
+                    }
+                );
+                return await getAbsentLearners(userClient, date_string);
+            }
+        }),
+        get_learner_details: tool({
+            description: dashboardToolDefinitions.get_learner_details.description,
+            parameters: z.object({
+                search_term: z.string().describe('Name or ULN of learner')
+            }),
+            execute: async ({ search_term }: { search_term: string }) => {
+                console.log('🛠️ [Tool] Executing get_learner_details...');
+                const userClient = createClient<Database>(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                    {
+                        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+                        auth: { persistSession: false }
+                    }
+                );
+                return await getLearnerDetails(userClient, search_term);
+            }
+        })
+    } : {};
 
 
     // 5. Stream Response
@@ -150,6 +257,8 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
         model: openai('gpt-4o'),
         system: systemPrompt,
         messages: messages,
+        tools: tools as any,
+        maxSteps: 5,
         onFinish: async (result) => {
             // Log interaction to Supabase (Analytics)
             try {
@@ -162,7 +271,8 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
                     is_course_query: isCourseQuery,
                     sources_found: courseSources.length,
                     generated_tokens: (result.usage as any).completionTokens || 0,
-                    has_carousel_generated: !!carouselInjection
+                    has_carousel_generated: !!carouselInjection,
+                    user_id: userProfile?.id || null // Log the staff ID if available
                 };
 
                 await supabaseAdmin.from('eli_chat_logs').insert({
@@ -180,4 +290,3 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
 
     return result.toTextStreamResponse();
 }
-

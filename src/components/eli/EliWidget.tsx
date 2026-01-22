@@ -16,6 +16,7 @@ interface EliWidgetProps {
     surface?: Surface;
     defaultOpen?: boolean;
     context?: string; // e.g. 'employers', 'learners', 'programs'
+    accessToken?: string; // Optional: For dashboard authentication
 }
 
 // Proactive messages based on User Context
@@ -23,7 +24,8 @@ const tooltips: Record<string, string> = {
     'employers': "Looking to hire an apprentice? I can help!",
     'learners': "Start your career with an apprenticeship. Ask me how!",
     'programs': "Not sure which program is right for you?",
-    'contact': "Have a specific question? Ask me directly."
+    'contact': "Have a specific question? Ask me directly.",
+    'dashboard': "Need help with learner data? Just ask."
 };
 
 interface Message {
@@ -32,7 +34,7 @@ interface Message {
     content: string;
 }
 
-export default function EliWidget({ surface = 'website', defaultOpen = false, context }: EliWidgetProps) {
+export default function EliWidget({ surface = 'website', defaultOpen = false, context, accessToken }: EliWidgetProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
@@ -97,9 +99,14 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
         setIsTyping(false); // Stop typing, start streaming
 
         try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+
             const response = await fetch('/api/eli/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
                     surface,
@@ -225,13 +232,13 @@ export default function EliWidget({ surface = 'website', defaultOpen = false, co
 
     return (
         <div className={cn(
-            "fixed flex flex-col items-end space-y-4 font-sans antialiased text-slate-800 z-50",
+            "fixed flex flex-col items-end space-y-4 font-sans antialiased text-slate-800 z-[9999]",
             surface === 'website' ? "bottom-0 right-0 p-0" : "bottom-6 right-6"
         )}>
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex flex-col w-full h-[100dvh] bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 sm:static sm:w-[380px] sm:h-[600px] sm:rounded-2xl sm:border sm:border-slate-100">
+                <div className="fixed inset-0 z-[9999] flex flex-col w-full h-[100dvh] bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 sm:absolute sm:bottom-0 sm:right-0 sm:inset-auto sm:w-[380px] sm:h-[600px] sm:rounded-2xl sm:border sm:border-slate-100">
 
                     {/* Header */}
                     <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
