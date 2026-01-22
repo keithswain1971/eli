@@ -231,7 +231,7 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
                 );
                 return await getAbsentLearners(userClient, date_string);
             }
-        }),
+        } as any),
         get_learner_details: tool({
             description: dashboardToolDefinitions.get_learner_details.description,
             parameters: z.object({
@@ -250,7 +250,7 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
                 );
                 return await getLearnerDetails(userClient, search_term);
             }
-        })
+        } as any)
     } : {};
 
 
