@@ -217,7 +217,8 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
             parameters: z.object({
                 date_string: z.string().describe('Date to check YYYY-MM-DD (or empty for today)')
             }),
-            execute: async ({ date_string }: { date_string?: string }) => {
+            execute: async (args: any) => {
+                const { date_string } = args;
                 console.log('🛠️ [Tool] Executing get_absent_learners...');
                 // Use the USER-SCOPED client (userProfile must be valid here)
                 const userClient = createClient<Database>(
@@ -236,7 +237,8 @@ Current Page: ${pageContext?.title || 'Unknown'} (${pageContext?.url || 'Unknown
             parameters: z.object({
                 search_term: z.string().describe('Name or ULN of learner')
             }),
-            execute: async ({ search_term }: { search_term: string }) => {
+            execute: async (args: any) => {
+                const { search_term } = args;
                 console.log('🛠️ [Tool] Executing get_learner_details...');
                 const userClient = createClient<Database>(
                     process.env.NEXT_PUBLIC_SUPABASE_URL!,
