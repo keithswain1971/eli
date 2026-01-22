@@ -126,7 +126,10 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
                         {textParts.map((part, idx) => {
                             if (part.type === 'text') {
                                 return (
-                                    <div key={idx} className="prose prose-sm max-w-none dark:prose-invert">
+                                    <div key={idx} className={cn(
+                                        "prose prose-sm max-w-none",
+                                        role === 'user' ? "text-white prose-p:text-white prose-headings:text-white" : "text-slate-800 prose-p:text-slate-800 prose-headings:text-slate-900"
+                                    )}>
                                         <ReactMarkdown>{part.content}</ReactMarkdown>
                                     </div>
                                 );
